@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Young's Modulus Calculator</title>
+
+<script src="https://cdn.jsdelivr.net/npm/xlsx@0.18.5/dist/xlsx.full.min.js"></script>
+
+<style>
+
+body{
+font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+background: #f4f6f8;
+padding:40px;
+}
+
+.container{
+max-width:1000px;
+margin:auto;
+}
+
+.card{
+background:white;
+padding:25px;
+border-radius:14px;
+box-shadow:0 8px 25px rgba(0,0,0,0.08);
+margin-bottom:25px;
+}
+
+.title{
+font-size:26px;
+font-weight:600;
+margin-bottom:20px;
+}
+
+.grid-3{
+display:grid;
+grid-template-columns:1fr 1fr 1fr;
+gap:12px;
+}
+
+.grid-2{
+display:grid;
+grid-template-columns:1fr 1fr;
+gap:12px;
+}
+
+input{
+padding:10px;
+border-radius:8px;
+border:1px solid #ddd;
+font-size:14px;
+}
+
+button{
+padding:10px 18px;
+border-radius:8px;
+border:none;
+background:#2563eb;
+color:white;
+font-weight:500;
+cursor:pointer;
+}
+
+button:hover{
+background:#1e4fd6;
+}
+
+.button-row{
+display:flex;
+justify-content:center;
+gap:12px;
+margin-top:10px;
+}
+
+.center{
+text-align:center;
+font-weight:500;
+margin-top:10px;
+}
+
+table{
+width:100%;
+border-collapse:collapse;
+margin-top:15px;
+}
+
+th,td{
+padding:10px;
+border:1px solid #eee;
+text-align:center;
+}
+
+th{
+background:#f8fafc;
+}
+
+</style>
+
+</head>
+
+<body>
+
+<div class="container">
+
+<div class="title">Compression Test Young's Modulus Calculator</div>
+
+<div class="card">
+
+<div class="grid-3">
+<input id="sampleId" placeholder="Sample ID">
+<input id="length" placeholder="Length (mm)">
+<input id="width" placeholder="Width (mm)">
+</div>
+
+<div class="center" id="area">
+Area = — × — = — mm²
+</div>
+
+<div class="grid-2">
+<input id="epsilon1" placeholder="ε₁ (%)">
+<input id="sigma1" placeholder="σ₁ (MPa)">
+<input id="epsilon2" placeholder="ε₂ (%)">
+<input id="sigma2" placeholder="σ₂ (MPa)">
+</div>
+
+<div class="button-row">
+<button onclick="calculate()">Calculate</button>
+<button onclick="save()">Save Sample</button>
+<button onclick="exportExcel()">Export Excel</button>
+</div>
+
+<div class="center" id="strainDisplay">
+ε₁ = —
+<br>
+ε₂ = —
+</div>
+
+<div class="center" id="youngDisplay">
+Young's Modulus (E) = (σ₂ − σ₁) / (ε₂ − ε₁)
+<br>
+E = —
+</div>
+
+</div>
+
+<div class="card">
+<h3>Saved Samples</h3>
+
+<table id="table">
+<thead>
+<tr>
+<th>ID</th>
+<th>Length</th>
+<th>Width</th>
+<th>Area</th>
+<th>ε1</th>
+<th>σ1</th>
+<th>ε2</th>
+<th>σ2</th>
+<th>Young's Modulus</th>
+</tr>
+</thead>
+<tbody></tbody>
+</table>
+
+</div>
+
+</div>
+
+<script>
+
+let records=[];
+
+function getValues(){
+return{
+sampleId:document.getElementById("sampleId").value,
+length:parseFloat(document.getElementById("length").value),
+width:parseFloat(document.getElementById("width").value),
+e1:parseFloat(document.getElementById("epsilon1").value),
+e2:parseFloat(document.getElementById("epsilon2").value),
+s1:parseFloat(document.getElementById("sigma1").value),
+s2:parseFloat(document.getElementById("sigma2").value)
+}
+}
+
+function update(){
+let v=getValues();
+
+if(v.length && v.width){
+let area=(v.length*v.width).toFixed(3);
+document.getElementById("area").innerHTML=`Area = ${v.length} × ${v.width} = ${area} mm²`;
+}
+
+if(v.e1){
+let e1=(v.e1/100).toFixed(4);
+let e2=(v.e2/100).toFixed(4);
+
+document.getElementById("strainDisplay").innerHTML=`
+ε₁ = ${v.e1}% = ${e1}
+<br>
+ε₂ = ${v.e2}% = ${e2}
+`;
+}
+}
+
+function calculate(){
+let v=getValues();
+
+let e1=v.e1/100;
+let e2=v.e2/100;
+
+let modulus=(v.s2-v.s1)/(e2-e1);
+
+
+let value=modulus.toFixed(3);
+
+
+document.getElementById("youngDisplay").innerHTML=`
+Young's Modulus (E) = (σ₂ − σ₁) / (ε₂ − ε₁)
+<br>
+E = (${v.s2}-${v.s1}) / (${e2}-${e1})
+<br>
+E = ${value} MPa
+`;
+
+return value;
+}
+
+function save(){
+let v=getValues();
+let value=calculate();
+
+let area=(v.length*v.width).toFixed(3);
+
+records.push({
+ID:v.sampleId,
+Length:v.length,
+Width:v.width,
+Area:area,
+e1:v.e1,
+s1:v.s1,
+e2:v.e2,
+s2:v.s2,
+Modulus:value
+});
+
+let row=document.querySelector("#table tbody");
+
+row.innerHTML+=`
+<tr>
+<td>${v.sampleId}</td>
+<td>${v.length}</td>
+<td>${v.width}</td>
+<td>${area}</td>
+<td>${v.e1}</td>
+<td>${v.s1}</td>
+<td>${v.e2}</td>
+<td>${v.s2}</td>
+<td>${value}</td>
+</tr>
+`;
+}
+
+function exportExcel(){
+if(!records.length) return;
+
+let fileName=prompt("Enter file name","Youngs_Modulus_Data");
+if(!fileName) return;
+
+let ws=XLSX.utils.json_to_sheet(records);
+let wb=XLSX.utils.book_new();
+XLSX.utils.book_append_sheet(wb,ws,"Youngs Modulus");
+XLSX.writeFile(wb,fileName+".xlsx");
+}
+
+document.querySelectorAll("input").forEach(el=>{
+el.addEventListener("input",update);
+});
+
+</script>
+
+</body>
+</html>
